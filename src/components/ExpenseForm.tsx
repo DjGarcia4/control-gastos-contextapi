@@ -2,13 +2,13 @@ import { categories } from "../data/categories";
 import DatePicker from "react-date-picker";
 import "react-date-picker/dist/DatePicker.css";
 import "react-calendar/dist/Calendar.css";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useBudget } from "../hooks/useBudget";
 import { DraftExpense, Value } from "../types";
 import ErrorMessage from "./ErrorMessage";
 
 const ExpenseForm = () => {
-  const { dispatch } = useBudget();
+  const { state, dispatch } = useBudget();
   const [expense, setExpense] = useState<DraftExpense>({
     amount: 0,
     expenseName: "",
@@ -17,6 +17,15 @@ const ExpenseForm = () => {
   });
 
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (state.editingId) {
+      const editingExpense = state.expenses.filter(
+        (item) => item.id === state.editingId
+      )[0];
+      setExpense(editingExpense);
+    }
+  }, [state.editingId, state.expenses]);
 
   const handleChange = (
     e:
@@ -39,12 +48,19 @@ const ExpenseForm = () => {
       return;
     }
     setError("");
-    dispatch({ type: "add-expense", payload: { expense } });
+    if (state.editingId) {
+      dispatch({
+        type: "update-expense",
+        payload: { expense: { id: state.editingId, ...expense } },
+      });
+    } else {
+      dispatch({ type: "add-expense", payload: { expense } });
+    }
   };
   return (
     <form className="space-y-5" onSubmit={handleSubmit}>
       <legend className="uppercase text-center text-2xl font-black border-b-4 border-blue-500">
-        Nuevo Gasto
+        {state.editingId ? " Actualizar Gasto" : "Agregar gasto"}
       </legend>
       {error && <ErrorMessage>{error}</ErrorMessage>}
       <div className="flex flex-col gap-2">
@@ -106,7 +122,7 @@ const ExpenseForm = () => {
       </div>
       <input
         type="submit"
-        value="Registrar Gasto"
+        value={state.editingId ? " Guardar Cambios" : "Agregar gasto"}
         className="bg-blue-600 w-full rounded-xl p-2 font-bold text-white cursor-pointer uppercase"
       />
     </form>
