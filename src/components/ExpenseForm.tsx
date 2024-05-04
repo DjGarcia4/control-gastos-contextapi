@@ -8,7 +8,7 @@ import { DraftExpense, Value } from "../types";
 import ErrorMessage from "./ErrorMessage";
 
 const ExpenseForm = () => {
-  const { state, dispatch } = useBudget();
+  const { state, dispatch, remainingBudget } = useBudget();
   const [expense, setExpense] = useState<DraftExpense>({
     amount: 0,
     expenseName: "",
@@ -17,6 +17,7 @@ const ExpenseForm = () => {
   });
 
   const [error, setError] = useState("");
+  const [previousAmount, setPreviousAmount] = useState(0);
 
   useEffect(() => {
     if (state.editingId) {
@@ -24,6 +25,7 @@ const ExpenseForm = () => {
         (item) => item.id === state.editingId
       )[0];
       setExpense(editingExpense);
+      setPreviousAmount(editingExpense.amount);
     }
   }, [state.editingId, state.expenses]);
 
@@ -47,7 +49,10 @@ const ExpenseForm = () => {
       setError("Todos los campos son obligatorios");
       return;
     }
-    setError("");
+    if (expense.amount - previousAmount > remainingBudget) {
+      setError("Ese gasto se sale del presupuesto.");
+      return;
+    }
     if (state.editingId) {
       dispatch({
         type: "update-expense",
@@ -56,6 +61,8 @@ const ExpenseForm = () => {
     } else {
       dispatch({ type: "add-expense", payload: { expense } });
     }
+    setError("");
+    setPreviousAmount(0);
   };
   return (
     <form className="space-y-5" onSubmit={handleSubmit}>
